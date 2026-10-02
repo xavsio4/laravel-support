@@ -12,6 +12,7 @@ use FifteenPeas\Support\Console\IndexDocsCommand;
 use FifteenPeas\Support\Docs\DocsRepository;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -41,6 +42,9 @@ class SupportServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/support.php');
+
+        // @supportWidget or @supportWidget(['position' => 'left'])
+        Blade::directive('supportWidget', fn ($options) => '<?php echo \\FifteenPeas\\Support\\Widget::tag('.($options ?: '[]').'); ?>');
 
         RateLimiter::for('support-messages', fn (Request $request) => Limit::perMinute(
             config('support.limits.messages_per_minute'),

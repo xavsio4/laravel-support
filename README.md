@@ -19,11 +19,10 @@ Each app installs the package. Its conversations live in that app's database, an
 ```bash
 composer require fifteenpeas/laravel-support
 php artisan vendor:publish --tag=support-config     # optional
-php artisan vendor:publish --tag=support-assets     # the widget, into public/vendor/support
 php artisan migrate
 ```
 
-Re-publish the assets after each update: `php artisan vendor:publish --tag=support-assets --force`.
+The widget script is served by the package itself, at a URL carrying its hash, so there are no assets to publish and `composer update` is the whole upgrade.
 
 `.env`:
 
@@ -66,14 +65,17 @@ The model receives every document with every question, in a fixed order, so afte
 
 ## Embed the widget
 
-In the authenticated layout:
+In the layout of signed-in pages:
 
-```html
-<script type="module" src="/vendor/support/support.js" data-support
-        data-app-name="Acme" data-endpoint="/support/api"></script>
+```blade
+@auth
+    @supportWidget(['position' => 'left'])
+@endauth
 ```
 
-| Attribute | |
+That renders the script tag, with `data-app-name` and `data-endpoint` filled from config. Each option becomes a `data-` attribute:
+
+| Option / attribute | |
 |---|---|
 | `data-app-name` | shown in the intro and decline messages |
 | `data-endpoint` | defaults to `/support/api` (`support.routes.prefix`) |

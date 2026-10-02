@@ -3,6 +3,7 @@
 use FifteenPeas\Support\FreeScout\WebhookController;
 use FifteenPeas\Support\Http\Controllers\ConversationController;
 use FifteenPeas\Support\Http\Controllers\MessageController;
+use FifteenPeas\Support\Http\Controllers\WidgetController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix(config('support.routes.prefix'))
@@ -17,6 +18,9 @@ Route::prefix(config('support.routes.prefix'))
                 ->middleware('throttle:support-messages')
                 ->name('messages.store');
         });
+
+        // Public: the script is the same for everyone and holds no data.
+        Route::get('widget.js', WidgetController::class)->name('widget');
 
         // FreeScout calls this; it is authenticated by signature, not session,
         // so it sits outside the app's middleware (and its CSRF check).
