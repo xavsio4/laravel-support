@@ -25,6 +25,13 @@ class McpDocsServerTest extends TestCase
             ->assertDontSee('Getting started');
     }
 
+    public function test_a_question_finds_the_section_whose_heading_answers_it(): void
+    {
+        $response = DocsServer::tool(SearchDocs::class, ['query' => 'why is my report not in the inbox', 'limit' => 1]);
+
+        $response->assertSee(['## Troubleshooting › A report is not in the inbox', 'Unconfirmed reports stay hidden']);
+    }
+
     public function test_search_with_nothing_matching_says_so(): void
     {
         DocsServer::tool(SearchDocs::class, ['query' => 'kubernetes helm chart'])

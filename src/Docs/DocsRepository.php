@@ -5,6 +5,7 @@ namespace FifteenPeas\Support\Docs;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -45,7 +46,13 @@ class DocsRepository
         $body = $raw;
 
         if (preg_match('/\A---\R(.*?)\R---\R?(.*)\z/s', $raw, $m)) {
-            $meta = (array) Yaml::parse($m[1]);
+            try {
+                $meta = (array) Yaml::parse($m[1]);
+            } catch (ParseException $e) {
+                // Without the file name, one bad colon fails a whole deploy's
+                // index with no hint where to look.
+                throw new RuntimeException("Invalid front-matter in {$relativePath}: {$e->getMessage()} Quote values that contain \": \".", 0, $e);
+            }
             $body = $m[2];
         }
 

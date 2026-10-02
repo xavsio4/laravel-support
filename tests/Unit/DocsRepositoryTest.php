@@ -11,7 +11,7 @@ class DocsRepositoryTest extends TestCase
     {
         $docs = (new DocsRepository(__DIR__.'/../fixtures/docs'))->all();
 
-        $this->assertSame(['getting-started', 'integrations-slack'], array_map(fn ($d) => $d->slug, $docs));
+        $this->assertSame(['getting-started', 'integrations-slack', 'troubleshooting'], array_map(fn ($d) => $d->slug, $docs));
 
         $this->assertSame('Getting started', $docs[0]->title);
         $this->assertSame('https://acme.test/docs/getting-started', $docs[0]->url);
@@ -30,5 +30,12 @@ class DocsRepositoryTest extends TestCase
         $this->assertSame('custom', $doc->slug);
         $this->assertSame('A B', $doc->title);
         $this->assertSame('Body', $doc->content);
+    }
+
+    public function test_bad_front_matter_names_the_file(): void
+    {
+        $this->expectExceptionMessage('Invalid front-matter in a/b.md');
+
+        (new DocsRepository('/unused'))->parse('a/b.md', "---\ndescription: Setup: the steps\n---\nBody");
     }
 }

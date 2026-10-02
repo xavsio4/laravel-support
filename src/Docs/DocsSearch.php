@@ -37,14 +37,21 @@ class DocsSearch
             $title = mb_strtolower($document->title);
 
             foreach ($this->sections($document->content) as [$heading, $body]) {
+                // A title line with nothing under it is not a result.
+                if ($body === '') {
+                    continue;
+                }
+
                 $headingLower = mb_strtolower($heading);
                 $bodyLower = mb_strtolower($body);
                 $score = 0;
 
                 foreach ($terms as $term) {
-                    $score += str_contains($title, $term) ? 4 : 0;
-                    $score += str_contains($headingLower, $term) ? 6 : 0;
-                    $score += min(substr_count($bodyLower, $term), 5);
+                    // A heading is the best evidence of what a section is
+                    // about; repetition in the body is weak evidence.
+                    $score += str_contains($title, $term) ? 3 : 0;
+                    $score += str_contains($headingLower, $term) ? 8 : 0;
+                    $score += min(substr_count($bodyLower, $term), 3);
                 }
 
                 if ($score === 0) {
@@ -58,7 +65,8 @@ class DocsSearch
                 $hits[] = [
                     'slug' => $document->slug,
                     'title' => $document->title,
-                    'section' => $heading,
+                    // The page's own "# Title" adds nothing next to the title.
+                    'section' => mb_strtolower($heading) === $title ? '' : $heading,
                     'snippet' => $this->snippet($body, $terms),
                     'url' => $document->publicUrl(),
                     'score' => $score,
