@@ -61,6 +61,25 @@ return [
     | Turns the authenticated user into ['id' => ..., 'name' => ..., 'email' => ...].
     | Any invokable class; the default reads id, name and email off the model.
     */
+    /*
+    | The docs, published for people and for other AI tools: raw markdown per
+    | page at /{prefix}/{slug}.md, llms.txt and llms-full.txt at the site root
+    | (llmstxt.org), and a read-only MCP server. Everything here is public.
+    */
+    'public' => [
+        'enabled' => env('SUPPORT_PUBLIC_DOCS', true),
+        'prefix' => env('SUPPORT_PUBLIC_PREFIX', 'help'),
+        // One or two sentences: the blockquote under the title in llms.txt.
+        'summary' => env('SUPPORT_PUBLIC_SUMMARY'),
+        'llms_txt' => env('SUPPORT_LLMS_TXT', true),
+    ],
+
+    'mcp' => [
+        'enabled' => env('SUPPORT_MCP', true),
+        'path' => env('SUPPORT_MCP_PATH', 'mcp/docs'),
+        'requests_per_minute' => 60,
+    ],
+
     'user_resolver' => FifteenPeas\Support\DefaultUserResolver::class,
 
     'queue' => env('SUPPORT_QUEUE'),

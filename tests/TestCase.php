@@ -3,6 +3,7 @@
 namespace FifteenPeas\Support\Tests;
 
 use FifteenPeas\Support\SupportServiceProvider;
+use Laravel\Mcp\Server\McpServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -12,7 +13,7 @@ abstract class TestCase extends Orchestra
 
     protected function getPackageProviders($app): array
     {
-        return [SupportServiceProvider::class];
+        return [McpServiceProvider::class, SupportServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void

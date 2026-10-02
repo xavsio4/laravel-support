@@ -154,7 +154,7 @@ class AnthropicDocsAnswerer implements DocsAnswerer
                         'n' => $numbers[$document->slug],
                         'slug' => $document->slug,
                         'title' => $document->title,
-                        'url' => $document->url,
+                        'url' => $document->publicUrl(),
                         'cited_text' => $citation->citedText,
                     ];
                 }

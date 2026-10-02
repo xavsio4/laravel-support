@@ -3,6 +3,7 @@
 namespace FifteenPeas\Support\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * One markdown file from the app's docs folder, as last indexed.
@@ -23,4 +24,31 @@ class Document extends Model
     protected $casts = [
         'tokens' => 'integer',
     ];
+
+    /**
+     * Where a person or a crawler can read this page: its own url from the
+     * front-matter, else the package's public markdown copy, else nowhere.
+     */
+    public function publicUrl(): ?string
+    {
+        if ($this->url) {
+            return $this->url;
+        }
+
+        return config('support.public.enabled') ? route('support.public.doc', ['slug' => $this->slug]) : null;
+    }
+
+    /** The first paragraph of prose, for listings. */
+    public function summary(int $limit = 160): string
+    {
+        foreach (preg_split('/\R{2,}/', $this->content) as $block) {
+            $block = trim($block);
+
+            if ($block !== '' && ! preg_match('/^(#|```|[-*|>]|\d+\.)/', $block)) {
+                return Str::limit(preg_replace('/\s+/', ' ', strip_tags($block)), $limit);
+            }
+        }
+
+        return '';
+    }
 }

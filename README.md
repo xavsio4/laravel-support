@@ -98,6 +98,33 @@ To open it from your own link, use `<a href="#support">Help</a>` or `data-suppor
 
 FreeScout sends every mailbox's events to every webhook, so several apps can share one FreeScout instance. Each app simply ignores conversations it did not open.
 
+## Publish the docs: llms.txt and MCP
+
+The same pages the assistant answers from are published for people and for other AI tools. Everything here is public and read-only, and on by default:
+
+| URL | |
+|---|---|
+| `/llms.txt` | the [llmstxt.org](https://llmstxt.org) index: title, summary, one annotated link per page |
+| `/llms-full.txt` | every page in one file |
+| `/help/{slug}.md` | each page as markdown. Citation chips link here when a page has no `url` front-matter |
+| `/mcp/docs` | an MCP server (Streamable HTTP) with `search_docs`, `get_doc` and `list_docs` |
+
+```dotenv
+SUPPORT_PUBLIC_SUMMARY="Acme lets your users report bugs without leaving the page."
+# SUPPORT_PUBLIC_PREFIX=help     # /help/{slug}.md
+# SUPPORT_LLMS_TXT=false         # if the app already serves its own llms.txt
+# SUPPORT_MCP_PATH=mcp/docs
+# SUPPORT_PUBLIC_DOCS=false / SUPPORT_MCP=false
+```
+
+To connect the MCP server to Claude Code:
+
+```bash
+claude mcp add --transport http acme-docs https://acme.test/mcp/docs
+```
+
+Other clients (Claude Desktop, Cursor, VS Code) take the same URL as a remote or HTTP server. `search_docs` is a keyword search over page sections, done in PHP, so it is the same on any database and fine for a support-sized corpus. The public routes are limited to 120 requests a minute per IP, and the MCP server to `support.mcp.requests_per_minute`.
+
 ## Check the boundary
 
 ```bash

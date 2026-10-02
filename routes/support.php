@@ -4,7 +4,10 @@ use FifteenPeas\Support\FreeScout\WebhookController;
 use FifteenPeas\Support\Http\Controllers\ConversationController;
 use FifteenPeas\Support\Http\Controllers\MessageController;
 use FifteenPeas\Support\Http\Controllers\WidgetController;
+use FifteenPeas\Support\Mcp\DocsServer;
+use FifteenPeas\Support\Public\PublicDocsController;
 use Illuminate\Support\Facades\Route;
+use Laravel\Mcp\Facades\Mcp;
 
 Route::prefix(config('support.routes.prefix'))
     ->name('support.')
@@ -26,3 +29,22 @@ Route::prefix(config('support.routes.prefix'))
         // so it sits outside the app's middleware (and its CSRF check).
         Route::post('webhooks/freescout', WebhookController::class)->name('webhooks.freescout');
     });
+
+if (config('support.public.enabled')) {
+    Route::middleware('throttle:support-public')->name('support.public.')->group(function () {
+        Route::get(trim(config('support.public.prefix'), '/').'/{slug}.md', [PublicDocsController::class, 'doc'])
+            ->where('slug', '[A-Za-z0-9_-]+')
+            ->name('doc');
+
+        if (config('support.public.llms_txt')) {
+            Route::get('llms.txt', [PublicDocsController::class, 'index'])->name('llms');
+            Route::get('llms-full.txt', [PublicDocsController::class, 'full'])->name('llms-full');
+        }
+    });
+}
+
+if (config('support.mcp.enabled')) {
+    Mcp::web(config('support.mcp.path'), DocsServer::class)
+        ->middleware('throttle:support-mcp')
+        ->name('support.mcp');
+}

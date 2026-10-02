@@ -50,6 +50,11 @@ class SupportServiceProvider extends ServiceProvider
             config('support.limits.messages_per_minute'),
         )->by('support:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        RateLimiter::for('support-public', fn (Request $request) => Limit::perMinute(120)->by('support-public:'.$request->ip()));
+        RateLimiter::for('support-mcp', fn (Request $request) => Limit::perMinute(
+            config('support.mcp.requests_per_minute'),
+        )->by('support-mcp:'.$request->ip()));
+
         if ($this->app->runningInConsole()) {
             $this->commands([IndexDocsCommand::class, EvalCommand::class]);
 
