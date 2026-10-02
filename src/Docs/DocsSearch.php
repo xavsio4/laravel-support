@@ -84,7 +84,25 @@ class DocsSearch
     {
         preg_match_all('/[\p{L}\p{N}_-]{3,}/u', mb_strtolower($query), $m);
 
-        return array_values(array_unique(array_diff($m[0], self::STOPWORDS)));
+        $terms = array_diff($m[0], self::STOPWORDS);
+
+        return array_values(array_unique(array_map($this->stem(...), $terms)));
+    }
+
+    /**
+     * Trims a few common endings so "invite", "inviting" and "invited" all
+     * match: query terms are matched as substrings, so the shorter stem finds
+     * every form. Deliberately crude; a support corpus does not need Porter.
+     */
+    private function stem(string $term): string
+    {
+        foreach (['ing', 'ed', 'es', 's', 'e'] as $suffix) {
+            if (str_ends_with($term, $suffix) && mb_strlen($term) - mb_strlen($suffix) >= 4) {
+                return mb_substr($term, 0, -mb_strlen($suffix));
+            }
+        }
+
+        return $term;
     }
 
     /**

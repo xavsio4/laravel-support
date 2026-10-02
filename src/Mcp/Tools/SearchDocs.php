@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Search the documentation by keywords. Returns the best-matching sections with the page slug, a snippet and a link.')]
+#[Description('Search the documentation by keywords (keyword matching, not semantic: use the words the docs would use, in the docs\' language, usually English). Returns the best-matching sections with the page slug, a snippet and a link.')]
 #[IsReadOnly]
 #[IsIdempotent]
 class SearchDocs extends Tool
@@ -44,7 +44,7 @@ class SearchDocs extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'query' => $schema->string()->description('Keywords or a question, in any language the docs use.')->required(),
+            'query' => $schema->string()->description('Keywords or a short question, in the language of the docs.')->required(),
             'limit' => $schema->integer()->description('How many sections to return, 1 to 10. Default 5.'),
         ];
     }

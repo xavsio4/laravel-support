@@ -32,6 +32,11 @@ class McpDocsServerTest extends TestCase
         $response->assertSee(['## Troubleshooting › A report is not in the inbox', 'Unconfirmed reports stay hidden']);
     }
 
+    public function test_word_forms_match(): void
+    {
+        DocsServer::tool(SearchDocs::class, ['query' => 'invite', 'limit' => 1])->assertSee('## Team › Members');
+    }
+
     public function test_search_with_nothing_matching_says_so(): void
     {
         DocsServer::tool(SearchDocs::class, ['query' => 'kubernetes helm chart'])
