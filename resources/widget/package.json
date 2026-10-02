@@ -1,0 +1,15 @@
+{
+    "name": "@fifteenpeas/support-widget",
+    "version": "1.0.0",
+    "private": true,
+    "description": "In-app support chat for fifteenpeas Laravel apps",
+    "type": "module",
+    "scripts": {
+        "build": "node build.mjs",
+        "typecheck": "tsc"
+    },
+    "devDependencies": {
+        "esbuild": "^0.25.0",
+        "typescript": "^5.7.0"
+    }
+}
