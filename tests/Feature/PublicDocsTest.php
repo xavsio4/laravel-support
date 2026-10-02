@@ -17,7 +17,8 @@ class PublicDocsTest extends TestCase
     {
         config(['support.public.summary' => 'Feedback widgets for web apps.']);
 
-        $body = $this->get('/llms.txt')
+        // As an agent asks: without text/html in Accept.
+        $body = $this->get('/llms.txt', ['Accept' => '*/*'])
             ->assertOk()
             ->assertHeader('Content-Type', 'text/markdown; charset=utf-8')
             ->getContent();
