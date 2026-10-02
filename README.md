@@ -73,7 +73,9 @@ In the layout of signed-in pages:
 @endauth
 ```
 
-That renders the script tag, with `data-app-name` and `data-endpoint` filled from config. Each option becomes a `data-` attribute:
+That renders the script tag, with `data-app-name` and `data-endpoint` filled from config.
+
+**Inertia and other SPAs:** logging in usually does not reload the page, so a tag wrapped in `@auth` never appears until the next full load. Render it on every page with `'launcher' => 'hide'`, and open it from a `#support` link that only signed-in users see. Each option becomes a `data-` attribute:
 
 | Option / attribute | |
 |---|---|
