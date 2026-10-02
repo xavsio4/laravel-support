@@ -99,6 +99,30 @@ To open it from your own link, use `<a href="#support">Help</a>` or `data-suppor
 
 FreeScout sends every mailbox's events to every webhook, so several apps can share one FreeScout instance. Each app simply ignores conversations it did not open.
 
+## The Help panel: Ask, Docs, FAQ
+
+The widget has three tabs:
+
+- **Ask** is the assistant.
+- **Docs** has a search box and the list of pages. Pages open in the panel, links between pages stay there, and **Open full page** goes to the public page. Citation chips in Ask open their page here too.
+- **FAQ** lists collapsible questions, then "Didn't find it? Ask the assistant".
+
+The panel reopens on whichever tab was used last.
+
+The FAQ is an ordinary page, `docs/support/faq.md` (`SUPPORT_FAQ_SLUG` changes the slug): each `##` heading is a question, and the text under it is the answer. Questions with no answer yet are skipped. Since it is indexed like every other page, the assistant, `llms.txt` and the MCP server answer from it too. Without a FAQ page, the FAQ tab is hidden.
+
+Pages are rendered to HTML on the server with raw HTML escaped and unsafe links dropped, so the widget carries no markdown renderer. Links between pages are written as `sites.md`, which also works on GitHub; the panel and the public pages each resolve them in their own way.
+
+### Public help pages
+
+`/help` is an index of every page, and `/help/{slug}` shows one page. They are plain, responsive pages with a canonical URL and structured data: `TechArticle` on each page, and `FAQPage` on the FAQ, for search engines and AI search. `vendor:publish --tag=support-views` lets you restyle them. To add them to the app's sitemap:
+
+```php
+foreach (\FifteenPeas\Support\Sitemap::urls() as $url) {
+    // ['loc' => 'https://…/help/sites', 'lastmod' => '2026-10-02T…']
+}
+```
+
 ## Publish the docs: llms.txt and MCP
 
 The same pages the assistant answers from are published for people and for other AI tools. Everything here is public and read-only, and on by default:
@@ -107,7 +131,7 @@ The same pages the assistant answers from are published for people and for other
 |---|---|
 | `/llms.txt` | the [llmstxt.org](https://llmstxt.org) index: title, summary, one annotated link per page |
 | `/llms-full.txt` | every page in one file |
-| `/help/{slug}.md` | each page as markdown. Citation chips link here when a page has no `url` front-matter |
+| `/help/{slug}.md` | each page as markdown (the HTML page links to it with `rel=alternate`) |
 | `/mcp/docs` | an MCP server (Streamable HTTP) with `search_docs`, `get_doc` and `list_docs` |
 
 ```dotenv

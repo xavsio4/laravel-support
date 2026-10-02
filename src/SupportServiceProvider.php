@@ -54,6 +54,7 @@ class SupportServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/support.php');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'support');
 
         // @supportWidget or @supportWidget(['position' => 'left'])
         Blade::directive('supportWidget', fn ($options) => '<?php echo \\FifteenPeas\\Support\\Widget::tag('.($options ?: '[]').'); ?>');
@@ -71,7 +72,7 @@ class SupportServiceProvider extends ServiceProvider
             $this->commands([IndexDocsCommand::class, EvalCommand::class]);
 
             $this->publishes([__DIR__.'/../config/support.php' => config_path('support.php')], 'support-config');
-            $this->publishes([__DIR__.'/../dist' => public_path('vendor/support')], 'support-assets');
+            $this->publishes([__DIR__.'/../resources/views' => resource_path('views/vendor/support')], 'support-views');
         }
     }
 }

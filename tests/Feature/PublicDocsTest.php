@@ -24,7 +24,8 @@ class PublicDocsTest extends TestCase
             ->getContent();
 
         $this->assertStringStartsWith("# Acme\n\n> Feedback widgets for web apps.\n", $body);
-        $this->assertStringContainsString("## Docs\n\n- [Getting started](http://localhost/help/getting-started.md): Create a site and install the snippet.", $body);
+        $this->assertStringContainsString("## Docs\n\n- [", $body);
+        $this->assertStringContainsString("\n- [Getting started](http://localhost/help/getting-started.md): Create a site and install the snippet.\n", $body);
         $this->assertStringContainsString('- [Slack notifications](http://localhost/help/integrations-slack.md)', $body);
         $this->assertStringContainsString('- [All pages in one file](http://localhost/llms-full.txt)', $body);
         $this->assertStringContainsString('[MCP server](http://localhost/mcp/docs)', $body);
@@ -60,7 +61,7 @@ class PublicDocsTest extends TestCase
     public function test_citations_fall_back_to_the_public_page(): void
     {
         $doc = \FifteenPeas\Support\Models\Document::where('slug', 'integrations-slack')->first();
-        $this->assertSame('http://localhost/help/integrations-slack.md', $doc->publicUrl());
+        $this->assertSame('http://localhost/help/integrations-slack', $doc->publicUrl());
 
         $withUrl = \FifteenPeas\Support\Models\Document::where('slug', 'getting-started')->first();
         $this->assertSame('https://acme.test/docs/getting-started', $withUrl->publicUrl());

@@ -27,8 +27,8 @@ class Document extends Model
     ];
 
     /**
-     * Where a person or a crawler can read this page: its own url from the
-     * front-matter, else the package's public markdown copy, else nowhere.
+     * Where a person can read this page: its own url from the front-matter,
+     * else the package's public help page, else nowhere.
      */
     public function publicUrl(): ?string
     {
@@ -36,7 +36,7 @@ class Document extends Model
             return $this->url;
         }
 
-        return config('support.public.enabled') ? route('support.public.doc', ['slug' => $this->slug]) : null;
+        return config('support.public.enabled') ? route('support.public.page', ['slug' => $this->slug]) : null;
     }
 
     /** The front-matter description, else the first paragraph of prose. */

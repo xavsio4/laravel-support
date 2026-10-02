@@ -21,7 +21,7 @@ class McpDocsServerTest extends TestCase
     {
         DocsServer::tool(SearchDocs::class, ['query' => 'connect slack channel'])
             ->assertOk()
-            ->assertSee(['## Slack notifications', 'slug: integrations-slack', 'url: http://localhost/help/integrations-slack.md'])
+            ->assertSee(['## Slack notifications', 'slug: integrations-slack', 'url: http://localhost/help/integrations-slack'])
             ->assertDontSee('Getting started');
     }
 

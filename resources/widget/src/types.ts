@@ -1,5 +1,6 @@
 export interface Citation {
     n: number;
+    slug?: string;
     title: string;
     url: string | null;
 }
@@ -27,4 +28,29 @@ export interface WidgetConfig {
     launcher: 'show' | 'hide' | 'auto';
     position: 'left' | 'right';
     appName: string;
+}
+
+export interface DocSummary {
+    slug: string;
+    title: string;
+    description: string;
+}
+
+export interface DocPage {
+    slug: string;
+    title: string;
+    html: string;
+    url: string | null;
+}
+
+export interface SearchHit {
+    slug: string;
+    title: string;
+    section: string;
+    snippet: string;
+}
+
+export interface FaqEntry {
+    question: string;
+    html: string;
 }

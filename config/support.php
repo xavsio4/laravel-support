@@ -15,6 +15,12 @@ return [
     'docs_path' => env('SUPPORT_DOCS_PATH', 'docs/support'),
 
     /*
+    | The page whose "##" headings are the FAQ's questions. Shown in the
+    | widget's FAQ tab and at /help/faq, and indexed like any other page.
+    */
+    'faq_slug' => env('SUPPORT_FAQ_SLUG', 'faq'),
+
+    /*
     | The whole corpus is sent with every question, so it has a ceiling.
     | support:index warns above it; that is the signal to add a retriever.
     */

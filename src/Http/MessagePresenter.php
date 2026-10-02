@@ -41,7 +41,7 @@ class MessagePresenter
             // shows its own localized "can't help with that" instead.
             'content' => $message->declined || $status !== Message::STATUS_DONE ? null : $message->content,
             'citations' => $message->declined ? [] : array_map(
-                fn (array $c) => ['n' => $c['n'], 'title' => $c['title'], 'url' => $c['url']],
+                fn (array $c) => ['n' => $c['n'], 'slug' => $c['slug'], 'title' => $c['title'], 'url' => $c['url']],
                 $message->citations ?? [],
             ),
             'created_at' => $message->created_at?->toIso8601String(),

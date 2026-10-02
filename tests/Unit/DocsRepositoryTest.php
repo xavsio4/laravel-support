@@ -11,16 +11,18 @@ class DocsRepositoryTest extends TestCase
     {
         $docs = (new DocsRepository(__DIR__.'/../fixtures/docs'))->all();
 
-        $this->assertSame(['getting-started', 'integrations-slack', 'team', 'troubleshooting'], array_map(fn ($d) => $d->slug, $docs));
+        $this->assertSame(['faq', 'getting-started', 'integrations-slack', 'team', 'troubleshooting'], array_map(fn ($d) => $d->slug, $docs));
 
-        $this->assertSame('Getting started', $docs[0]->title);
-        $this->assertSame('https://acme.test/docs/getting-started', $docs[0]->url);
-        $this->assertStringStartsWith('# Getting started', $docs[0]->content);
+        [, $start, $slack] = $docs;
 
-        $this->assertSame('Slack notifications', $docs[1]->title);
-        $this->assertNull($docs[1]->url);
-        $this->assertSame('Create a site and install the snippet.', $docs[0]->description);
-        $this->assertNull($docs[1]->description);
+        $this->assertSame('Getting started', $start->title);
+        $this->assertSame('https://acme.test/docs/getting-started', $start->url);
+        $this->assertStringStartsWith('# Getting started', $start->content);
+        $this->assertSame('Create a site and install the snippet.', $start->description);
+
+        $this->assertSame('Slack notifications', $slack->title);
+        $this->assertNull($slack->url);
+        $this->assertNull($slack->description);
     }
 
     public function test_front_matter_slug_wins(): void

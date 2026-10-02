@@ -49,7 +49,7 @@ class MessageFlowTest extends TestCase
             ->assertJsonPath('conversation.messages.1.citations.0.url', 'https://acme.test/docs/getting-started')
             ->assertJsonMissingPath('conversation.messages.1.citations.0.cited_text');
 
-        $this->assertCount(4, $fake->calls[0]['documents']);
+        $this->assertCount(5, $fake->calls[0]['documents']);
         $this->assertSame('How do I add a site?', $fake->calls[0]['question']);
     }
 

@@ -1,12 +1,19 @@
 import { Api, ApiError, lastId } from './api';
 import { t, type Locale, type MessageKey } from './i18n';
 import { render } from './markdown';
-import type { ChatMessage, ConversationState, WidgetConfig } from './types';
+import type { ChatMessage, ConversationState, DocPage, DocSummary, FaqEntry, SearchHit, WidgetConfig } from './types';
 
 const NS = 'fp-support';
 
 /** Elements on the host page that open the chat. */
 export const TRIGGER_SELECTOR = '[data-support-open], a[href="#support"]';
+
+type Tab = 'ask' | 'docs' | 'faq';
+
+const TAB_KEY = 'fp-support:tab';
+
+/** Links between doc pages, as the server writes them for the reader. */
+const DOC_LINK = '#support-doc=';
 
 const POLL_PENDING_MS = 1500;
 const POLL_ESCALATED_MS = 20000;
@@ -71,6 +78,31 @@ textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgb(
 .link{align-self:flex-start;border:0;background:none;color:#5a6070;cursor:pointer;font:12px system-ui,sans-serif;text-decoration:underline;padding:0}
 .notice{font-size:13px;color:#5a6070;background:#f6f7f8;border-radius:10px;padding:10px 12px}
 .err{color:#a93a24;font-size:12px}
+.tabs{display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid #e6e7e9}
+.tab{border:0;background:none;padding:8px 10px;cursor:pointer;font:600 13px system-ui,sans-serif;color:#8e94a3;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:#14161a;border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent)}
+.pane{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.search{width:100%;border:1px solid #e6e7e9;border-radius:10px;padding:8px 10px;font:inherit;color:#14161a}
+.search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgb(20 22 26/.08)}
+.item{display:block;width:100%;text-align:left;border:1px solid #e6e7e9;border-radius:12px;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:#14161a}
+.item:hover{border-color:#14161a}
+.item b{display:block;font-size:13px}
+.item span{display:block;color:#5a6070;font-size:12px;margin-top:2px}
+.back{align-self:flex-start;border:0;background:none;cursor:pointer;color:#5a6070;font:600 12px system-ui,sans-serif;padding:0}
+.doc h1{font-size:17px;margin:0 0 6px}
+.doc{font-size:13.5px;overflow-wrap:anywhere}
+.doc h2{font-size:15px;margin:16px 0 6px}.doc h3{font-size:14px;margin:12px 0 4px}
+.doc p{margin:0 0 8px}.doc ul,.doc ol{margin:4px 0 8px;padding-left:20px}
+.doc code{font:12px ui-monospace,monospace;background:#eceef0;padding:1px 4px;border-radius:4px}
+.doc pre{background:#f3f4f5;border-radius:8px;padding:8px 10px;overflow-x:auto}.doc pre code{background:none;padding:0}
+.doc table{border-collapse:collapse;display:block;overflow-x:auto;font-size:12px}.doc th,.doc td{border:1px solid #e6e7e9;padding:4px 6px}
+.doc a{color:#14161a}
+.full{font-size:12px;color:#5a6070}
+details{border:1px solid #e6e7e9;border-radius:12px;padding:8px 12px}
+summary{cursor:pointer;font-weight:600;font-size:13px}
+details .doc{margin-top:6px}
+.ask{display:flex;gap:8px;align-items:center;font-size:12px;color:#5a6070;margin-top:4px}
 `;
 
 const ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.4"/><path d="M12 16.5h.01"/></svg>`;
@@ -94,6 +126,24 @@ export class SupportUI {
 
     private opener: HTMLElement | null = null;
 
+    private tab: Tab = 'ask';
+
+    private docs: DocSummary[] | null = null;
+
+    private hasFaq = false;
+
+    private page: DocPage | null = null;
+
+    private query = '';
+
+    private hits: SearchHit[] | null = null;
+
+    private faq: FaqEntry[] | null = null;
+
+    private loadFailed = false;
+
+    private searchTimer: number | null = null;
+
     constructor(
         private root: ShadowRoot,
         private config: WidgetConfig,
@@ -107,6 +157,13 @@ export class SupportUI {
         this.root.appendChild(style);
 
         if (showLauncher) this.renderLauncher();
+
+        try {
+            const saved = sessionStorage.getItem(TAB_KEY);
+            if (saved === 'docs' || saved === 'faq') this.tab = saved;
+        } catch {
+            // No storage: start on Ask.
+        }
     }
 
     private t(key: MessageKey): string {
@@ -143,6 +200,10 @@ export class SupportUI {
 
         document.addEventListener('keydown', this.onEscape, true);
         this.render();
+
+        // Fetched once: it decides whether the FAQ tab exists.
+        if (this.docs === null) void this.loadDocs();
+        if (this.tab === 'faq' && this.faq === null) void this.loadFaq();
 
         // Every open refreshes, so an agent's reply that arrived meanwhile shows.
         void this.api
@@ -182,13 +243,256 @@ export class SupportUI {
         const draft = panel.querySelector('textarea')?.value ?? '';
         const hadFocus = this.root.activeElement?.tagName === 'TEXTAREA';
 
-        panel.replaceChildren(this.renderHead(), this.renderLog(), this.renderFoot(draft));
+        const searchFocused = this.root.activeElement?.classList.contains('search') ?? false;
 
-        const log = panel.querySelector('.log');
-        if (log) log.scrollTop = log.scrollHeight;
+        if (this.tab === 'ask') {
+            panel.replaceChildren(this.renderHead(), this.renderTabs(), this.renderLog(), this.renderFoot(draft));
 
-        const textarea = panel.querySelector('textarea');
-        if (textarea && (hadFocus || draft === '')) textarea.focus();
+            const log = panel.querySelector('.log');
+            if (log) log.scrollTop = log.scrollHeight;
+
+            const textarea = panel.querySelector('textarea');
+            if (textarea && (hadFocus || draft === '')) textarea.focus();
+
+            return;
+        }
+
+        panel.replaceChildren(this.renderHead(), this.renderTabs(), this.tab === 'docs' ? this.renderDocs() : this.renderFaq());
+
+        if (searchFocused) {
+            const search = panel.querySelector<HTMLInputElement>('.search');
+            search?.focus();
+            search?.setSelectionRange(search.value.length, search.value.length);
+        }
+    }
+
+    private renderTabs(): HTMLElement {
+        const tabs = el('div', 'tabs');
+        tabs.setAttribute('role', 'tablist');
+
+        const entries: Array<[Tab, MessageKey]> = [['ask', 'tabAsk'], ['docs', 'tabDocs'], ['faq', 'tabFaq']];
+
+        for (const [tab, label] of entries) {
+            if (tab === 'faq' && this.docs !== null && !this.hasFaq) continue;
+
+            const button = el('button', 'tab', this.t(label)) as HTMLButtonElement;
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', String(this.tab === tab));
+            button.addEventListener('click', () => this.select(tab));
+            tabs.append(button);
+        }
+
+        return tabs;
+    }
+
+    private select(tab: Tab): void {
+        this.tab = tab;
+        this.loadFailed = false;
+
+        try {
+            sessionStorage.setItem(TAB_KEY, tab);
+        } catch {
+            // Not remembered; harmless.
+        }
+
+        this.render();
+
+        if (tab === 'docs' && this.docs === null) void this.loadDocs();
+        if (tab === 'faq' && this.faq === null) void this.loadFaq();
+    }
+
+    private async loadDocs(): Promise<void> {
+        try {
+            const result = await this.api.docs();
+            this.docs = result.docs;
+            this.hasFaq = result.has_faq;
+        } catch {
+            this.loadFailed = true;
+        }
+        this.render();
+    }
+
+    private async loadFaq(): Promise<void> {
+        try {
+            this.faq = await this.api.faq();
+        } catch {
+            this.loadFailed = true;
+        }
+        this.render();
+    }
+
+    /** Opens a page in the Docs tab: from the list, a search hit, a link inside a page, or a citation. */
+    private async openDoc(slug: string): Promise<void> {
+        this.tab = 'docs';
+        this.page = { slug, title: '', html: '', url: null };
+        this.render();
+
+        try {
+            this.page = await this.api.doc(slug);
+        } catch {
+            this.page = null;
+            this.loadFailed = true;
+        }
+
+        this.render();
+        this.panel?.querySelector('.pane')?.scrollTo(0, 0);
+    }
+
+    private renderDocs(): HTMLElement {
+        const pane = el('div', 'pane');
+
+        if (this.page) {
+            const back = el('button', 'back', `← ${this.t('back')}`) as HTMLButtonElement;
+            back.type = 'button';
+            back.addEventListener('click', () => {
+                this.page = null;
+                this.render();
+            });
+            pane.append(back);
+
+            if (!this.page.html) {
+                pane.append(el('div', 'muted dots', this.t('loading')));
+                return pane;
+            }
+
+            const doc = el('div', 'doc');
+            doc.append(el('h1', '', this.page.title));
+            const body = el('div');
+            // Rendered on the server with raw HTML escaped and unsafe links dropped.
+            body.innerHTML = this.page.html;
+            doc.append(body);
+            this.wireLinks(doc);
+            pane.append(doc);
+
+            if (this.page.url && /^https?:\/\//.test(this.page.url)) {
+                const full = el('a', 'full', `${this.t('openFull')} ↗`) as HTMLAnchorElement;
+                full.href = this.page.url;
+                full.target = '_blank';
+                full.rel = 'noopener';
+                pane.append(full);
+            }
+
+            return pane;
+        }
+
+        const search = document.createElement('input');
+        search.type = 'search';
+        search.className = 'search';
+        search.placeholder = this.t('searchDocs');
+        search.setAttribute('aria-label', this.t('searchDocs'));
+        search.value = this.query;
+        search.addEventListener('input', () => {
+            this.query = search.value;
+            if (this.searchTimer !== null) window.clearTimeout(this.searchTimer);
+            this.searchTimer = window.setTimeout(() => void this.runSearch(), 250);
+        });
+        pane.append(search);
+
+        if (this.loadFailed) {
+            pane.append(el('div', 'err', this.t('loadFailed')));
+            return pane;
+        }
+
+        if (this.query.trim().length >= 2 && this.hits !== null) {
+            if (this.hits.length === 0) pane.append(el('div', 'muted', this.t('noResults')));
+
+            for (const hit of this.hits) {
+                pane.append(this.item(hit.section ? `${hit.title} › ${hit.section}` : hit.title, hit.snippet, hit.slug));
+            }
+
+            return pane;
+        }
+
+        if (this.docs === null) {
+            pane.append(el('div', 'muted dots', this.t('loading')));
+            return pane;
+        }
+
+        for (const doc of this.docs) pane.append(this.item(doc.title, doc.description, doc.slug));
+
+        return pane;
+    }
+
+    private item(title: string, detail: string, slug: string): HTMLElement {
+        const button = el('button', 'item') as HTMLButtonElement;
+        button.type = 'button';
+        button.append(el('b', '', title));
+        if (detail) button.append(el('span', '', detail));
+        button.addEventListener('click', () => void this.openDoc(slug));
+        return button;
+    }
+
+    private async runSearch(): Promise<void> {
+        const query = this.query.trim();
+
+        if (query.length < 2) {
+            this.hits = null;
+            this.render();
+            return;
+        }
+
+        try {
+            const hits = await this.api.search(query);
+            if (this.query.trim() === query) this.hits = hits;
+        } catch {
+            this.hits = [];
+        }
+
+        this.render();
+    }
+
+    private renderFaq(): HTMLElement {
+        const pane = el('div', 'pane');
+
+        if (this.loadFailed) {
+            pane.append(el('div', 'err', this.t('loadFailed')));
+            return pane;
+        }
+
+        if (this.faq === null) {
+            pane.append(el('div', 'muted dots', this.t('loading')));
+            return pane;
+        }
+
+        if (this.faq.length === 0) pane.append(el('div', 'muted', this.t('faqEmpty')));
+
+        for (const entry of this.faq) {
+            const details = document.createElement('details');
+            details.append(el('summary', '', entry.question));
+            const answer = el('div', 'doc');
+            answer.innerHTML = entry.html;
+            this.wireLinks(answer);
+            details.append(answer);
+            pane.append(details);
+        }
+
+        const ask = el('div', 'ask', this.t('askInstead'));
+        const button = el('button', 'human', this.t('askAssistant')) as HTMLButtonElement;
+        button.type = 'button';
+        button.style.marginTop = '0';
+        button.addEventListener('click', () => this.select('ask'));
+        ask.append(button);
+        pane.append(ask);
+
+        return pane;
+    }
+
+    /** Page-to-page links open in the reader; anything else in a new tab. */
+    private wireLinks(container: HTMLElement): void {
+        container.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+            const href = link.getAttribute('href') ?? '';
+
+            if (href.startsWith(DOC_LINK)) {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    void this.openDoc(href.slice(DOC_LINK.length).split('#')[0]);
+                });
+            } else if (/^https?:\/\//.test(href)) {
+                link.target = '_blank';
+                link.rel = 'noopener';
+            }
+        });
     }
 
     private renderHead(): HTMLElement {
@@ -197,7 +501,7 @@ export class SupportUI {
 
         const tools = el('div', 'tools');
 
-        if (this.conversation && this.conversation.messages.length > 0) {
+        if (this.tab === 'ask' && this.conversation && this.conversation.messages.length > 0) {
             const fresh = el('button', 'icon', this.t('newChat')) as HTMLButtonElement;
             fresh.type = 'button';
             fresh.addEventListener('click', () => void this.startOver());
@@ -270,6 +574,15 @@ export class SupportUI {
                     link.href = citation.url;
                     link.target = '_blank';
                     link.rel = 'noopener';
+                    // The page opens in the Docs tab; a modified click still opens the full page.
+                    const slug = citation.slug;
+                    if (slug) {
+                        link.addEventListener('click', (event) => {
+                            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+                            event.preventDefault();
+                            void this.openDoc(slug);
+                        });
+                    }
                     sources.append(link);
                 } else {
                     sources.append(el('span', 'chip', label));

@@ -87,7 +87,7 @@ class AnthropicDocsAnswererTest extends TestCase
         $this->assertSame('Create it from the dashboard[1], then connect Slack[2].', $answer->text);
         $this->assertSame([
             ['n' => 1, 'slug' => 'sites', 'title' => 'Sites', 'url' => 'https://acme.test/docs/sites', 'cited_text' => 'Create a site'],
-            ['n' => 2, 'slug' => 'slack', 'title' => 'Slack', 'url' => 'http://localhost/help/slack.md', 'cited_text' => 'Connect Slack'],
+            ['n' => 2, 'slug' => 'slack', 'title' => 'Slack', 'url' => 'http://localhost/help/slack', 'cited_text' => 'Connect Slack'],
         ], $answer->citations);
         $this->assertSame(2000, $answer->usage['cache_read_input_tokens']);
 

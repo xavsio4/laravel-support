@@ -2,6 +2,8 @@
 
 namespace FifteenPeas\Support\Public;
 
+use FifteenPeas\Support\Docs\DocRenderer;
+use FifteenPeas\Support\Docs\Faq;
 use FifteenPeas\Support\Models\Document;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -12,6 +14,34 @@ use Illuminate\Routing\Controller;
  */
 class PublicDocsController extends Controller
 {
+    /** The help centre's front page: every page, the FAQ first. */
+    public function home(): \Illuminate\Contracts\View\View
+    {
+        $faqSlug = config('support.faq_slug');
+
+        return view('support::index', [
+            'app' => config('support.app_name'),
+            'summary' => config('support.public.summary'),
+            'faq' => Document::where('slug', $faqSlug)->first(),
+            'documents' => Document::query()->where('slug', '!=', $faqSlug)->orderBy('title')->get(),
+        ]);
+    }
+
+    public function page(string $slug, DocRenderer $renderer, Faq $faq): \Illuminate\Contracts\View\View
+    {
+        $document = Document::where('slug', $slug)->firstOrFail();
+        $isFaq = $slug === config('support.faq_slug');
+        $toPage = fn (string $s) => route('support.public.page', ['slug' => $s]);
+
+        return view('support::page', [
+            'app' => config('support.app_name'),
+            'document' => $document,
+            'html' => $renderer->html($document, $toPage),
+            'faqEntries' => $isFaq ? $faq->entries() : [],
+            'documents' => Document::query()->orderBy('title')->get(['slug', 'title']),
+        ]);
+    }
+
     public function doc(string $slug): Response
     {
         $document = Document::where('slug', $slug)->firstOrFail();
