@@ -47,6 +47,15 @@ class PublicDocsTest extends TestCase
         $this->get('/help/nope.md')->assertNotFound();
     }
 
+    public function test_browsers_get_plain_text_so_the_page_displays(): void
+    {
+        $this->get('/help/integrations-slack.md', ['Accept' => 'text/html,application/xhtml+xml,*/*;q=0.8'])
+            ->assertHeader('Content-Type', 'text/plain; charset=utf-8');
+
+        $this->get('/help/integrations-slack.md', ['Accept' => '*/*'])
+            ->assertHeader('Content-Type', 'text/markdown; charset=utf-8');
+    }
+
     public function test_citations_fall_back_to_the_public_page(): void
     {
         $doc = \FifteenPeas\Support\Models\Document::where('slug', 'integrations-slack')->first();

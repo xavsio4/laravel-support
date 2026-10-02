@@ -74,8 +74,14 @@ class PublicDocsController extends Controller
 
     private function markdown(string $body): Response
     {
+        // A browser (the citation chips, a person clicking a link in
+        // llms.txt) may offer text/markdown as a download; text/plain is
+        // displayed everywhere. Agents get the precise type.
+        $type = str_contains((string) request()->header('Accept'), 'text/html') ? 'text/plain' : 'text/markdown';
+
         return response($body, 200, [
-            'Content-Type' => 'text/markdown; charset=utf-8',
+            'Content-Type' => $type.'; charset=utf-8',
+            'Vary' => 'Accept',
             'Cache-Control' => 'public, max-age=3600',
             // Read by agents and browsers on other sites.
             'Access-Control-Allow-Origin' => '*',
