@@ -10,11 +10,12 @@ final readonly class DocFile
         public string $title,
         public ?string $url,
         public string $content,
+        public ?string $description = null,
     ) {}
 
     public function checksum(): string
     {
-        return hash('sha256', $this->title."\n".$this->url."\n".$this->content);
+        return hash('sha256', $this->title."\n".$this->url."\n".$this->description."\n".$this->content);
     }
 
     /**

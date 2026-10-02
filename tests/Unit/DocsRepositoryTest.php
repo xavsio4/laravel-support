@@ -19,6 +19,8 @@ class DocsRepositoryTest extends TestCase
 
         $this->assertSame('Slack notifications', $docs[1]->title);
         $this->assertNull($docs[1]->url);
+        $this->assertSame('Create a site and install the snippet.', $docs[0]->description);
+        $this->assertNull($docs[1]->description);
     }
 
     public function test_front_matter_slug_wins(): void

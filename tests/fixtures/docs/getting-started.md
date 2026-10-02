@@ -1,5 +1,6 @@
 ---
 title: Getting started
+description: Create a site and install the snippet.
 url: https://acme.test/docs/getting-started
 ---
 # Getting started

@@ -48,6 +48,7 @@ Put markdown files in `docs/support/`. The folder can be changed with `SUPPORT_D
 title: Sites
 slug: sites
 url: https://acme.test/docs/sites   # optional: citation chips link here
+description: Add, edit, archive and delete sites.   # optional: llms.txt and list_docs
 ---
 # Sites
 ...

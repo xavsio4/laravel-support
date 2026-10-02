@@ -32,6 +32,7 @@ class IndexDocsCommand extends Command
                 $document->fill([
                     'title' => $file->title,
                     'url' => $file->url,
+                    'description' => $file->description,
                     'content' => $file->content,
                     'checksum' => $file->checksum(),
                     'tokens' => $file->tokens(),

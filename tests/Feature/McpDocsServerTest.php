@@ -47,7 +47,7 @@ class McpDocsServerTest extends TestCase
     public function test_list_docs_lists_every_page(): void
     {
         DocsServer::tool(ListDocs::class)
-            ->assertSee(['- getting-started: Getting started — Create a site from the dashboard', '- integrations-slack: Slack notifications']);
+            ->assertSee(['- getting-started: Getting started — Create a site and install the snippet.', '- integrations-slack: Slack notifications']);
     }
 
     public function test_the_server_answers_over_http(): void

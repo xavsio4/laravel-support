@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
  *
  * @property string $slug
  * @property string $title
+ * @property string|null $description
  * @property string|null $url
  * @property string $content
  * @property string $checksum
@@ -38,9 +39,13 @@ class Document extends Model
         return config('support.public.enabled') ? route('support.public.doc', ['slug' => $this->slug]) : null;
     }
 
-    /** The first paragraph of prose, for listings. */
+    /** The front-matter description, else the first paragraph of prose. */
     public function summary(int $limit = 160): string
     {
+        if (filled($this->description)) {
+            return Str::limit($this->description, $limit);
+        }
+
         foreach (preg_split('/\R{2,}/', $this->content) as $block) {
             $block = trim($block);
 

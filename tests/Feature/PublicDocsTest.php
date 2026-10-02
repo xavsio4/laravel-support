@@ -23,7 +23,7 @@ class PublicDocsTest extends TestCase
             ->getContent();
 
         $this->assertStringStartsWith("# Acme\n\n> Feedback widgets for web apps.\n", $body);
-        $this->assertStringContainsString("## Docs\n\n- [Getting started](http://localhost/help/getting-started.md): Create a site from the dashboard", $body);
+        $this->assertStringContainsString("## Docs\n\n- [Getting started](http://localhost/help/getting-started.md): Create a site and install the snippet.", $body);
         $this->assertStringContainsString('- [Slack notifications](http://localhost/help/integrations-slack.md)', $body);
         $this->assertStringContainsString('- [All pages in one file](http://localhost/llms-full.txt)', $body);
         $this->assertStringContainsString('[MCP server](http://localhost/mcp/docs)', $body);

@@ -57,6 +57,7 @@ class DocsRepository
             title: (string) ($meta['title'] ?? $this->firstHeading($body) ?? Str::headline($fallbackSlug)),
             url: isset($meta['url']) ? (string) $meta['url'] : null,
             content: $body,
+            description: isset($meta['description']) ? trim((string) $meta['description']) : null,
         );
     }
 
