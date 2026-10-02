@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 
 class SupportServiceProvider extends ServiceProvider
 {
@@ -32,7 +33,18 @@ class SupportServiceProvider extends ServiceProvider
 
         // Contextual, so an app that already binds the client for its own use
         // keeps its binding and its key.
-        $this->app->singleton('support.anthropic', fn () => new Client(apiKey: config('support.ai.api_key')));
+        $this->app->singleton('support.anthropic', function () {
+            // Without this the SDK sends no key and the API's 401 ("x-api-key
+            // header is required") lands on the message row, which reads like
+            // a bad key rather than a missing one, usually on the worker.
+            if (blank(config('support.ai.api_key'))) {
+                throw new RuntimeException(
+                    'ANTHROPIC_API_KEY is not set in this process. Answers run on the queue worker: set it in the worker\'s environment too, and redeploy so config:cache picks it up.',
+                );
+            }
+
+            return new Client(apiKey: config('support.ai.api_key'));
+        });
         $this->app->when(AnthropicDocsAnswerer::class)
             ->needs(Client::class)
             ->give(fn ($app) => $app->make('support.anthropic'));
