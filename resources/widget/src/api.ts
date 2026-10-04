@@ -1,4 +1,4 @@
-import type { ChatMessage, ConversationState, DocPage, DocSummary, FaqEntry, SearchHit, WidgetConfig } from './types';
+import type { ChatMessage, ConversationState, DocSummary, FaqEntry, SearchHit, WidgetConfig } from './types';
 
 /** An HTTP failure, with the status so the UI can say something specific. */
 export class ApiError extends Error {
@@ -78,12 +78,8 @@ export class Api {
         await this.request('POST', `conversations/${id}/close`);
     }
 
-    async docs(): Promise<{ docs: DocSummary[]; has_faq: boolean }> {
+    async docs(): Promise<{ docs: DocSummary[]; home: string | null; has_faq: boolean }> {
         return this.request('GET', 'docs');
-    }
-
-    async doc(slug: string): Promise<DocPage> {
-        return (await this.request<{ doc: DocPage }>('GET', `docs/${encodeURIComponent(slug)}`)).doc;
     }
 
     async search(query: string): Promise<SearchHit[]> {

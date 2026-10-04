@@ -1,7 +1,7 @@
 import { Api, ApiError, lastId } from './api';
 import { t, type Locale, type MessageKey } from './i18n';
 import { render } from './markdown';
-import type { ChatMessage, ConversationState, DocPage, DocSummary, FaqEntry, SearchHit, WidgetConfig } from './types';
+import type { ChatMessage, ConversationState, DocSummary, FaqEntry, SearchHit, WidgetConfig } from './types';
 
 const NS = 'fp-support';
 
@@ -11,9 +11,6 @@ export const TRIGGER_SELECTOR = '[data-support-open], a[href="#support"]';
 type Tab = 'ask' | 'docs' | 'faq';
 
 const TAB_KEY = 'fp-support:tab';
-
-/** Links between doc pages, as the server writes them for the reader. */
-const DOC_LINK = '#support-doc=';
 
 const POLL_PENDING_MS = 1500;
 const POLL_ESCALATED_MS = 20000;
@@ -85,12 +82,10 @@ textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgb(
 .pane{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .search{width:100%;border:1px solid #e6e7e9;border-radius:10px;padding:8px 10px;font:inherit;color:#14161a}
 .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgb(20 22 26/.08)}
-.item{display:block;width:100%;text-align:left;border:1px solid #e6e7e9;border-radius:12px;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:#14161a}
+.item{display:block;width:100%;text-align:left;text-decoration:none;border:1px solid #e6e7e9;border-radius:12px;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:#14161a}
 .item:hover{border-color:#14161a}
 .item b{display:block;font-size:13px}
 .item span{display:block;color:#5a6070;font-size:12px;margin-top:2px}
-.back{align-self:flex-start;border:0;background:none;cursor:pointer;color:#5a6070;font:600 12px system-ui,sans-serif;padding:0}
-.doc h1{font-size:17px;margin:0 0 6px}
 .doc{font-size:13.5px;overflow-wrap:anywhere}
 .doc h2{font-size:15px;margin:16px 0 6px}.doc h3{font-size:14px;margin:12px 0 4px}
 .doc p{margin:0 0 8px}.doc ul,.doc ol{margin:4px 0 8px;padding-left:20px}
@@ -98,7 +93,7 @@ textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgb(
 .doc pre{background:#f3f4f5;border-radius:8px;padding:8px 10px;overflow-x:auto}.doc pre code{background:none;padding:0}
 .doc table{border-collapse:collapse;display:block;overflow-x:auto;font-size:12px}.doc th,.doc td{border:1px solid #e6e7e9;padding:4px 6px}
 .doc a{color:#14161a}
-.full{font-size:12px;color:#5a6070}
+.full{align-self:flex-start;font-size:12px;font-weight:600;color:#14161a}
 details{border:1px solid #e6e7e9;border-radius:12px;padding:8px 12px}
 summary{cursor:pointer;font-weight:600;font-size:13px}
 details .doc{margin-top:6px}
@@ -132,7 +127,7 @@ export class SupportUI {
 
     private hasFaq = false;
 
-    private page: DocPage | null = null;
+    private home: string | null = null;
 
     private query = '';
 
@@ -306,6 +301,7 @@ export class SupportUI {
         try {
             const result = await this.api.docs();
             this.docs = result.docs;
+            this.home = result.home;
             this.hasFaq = result.has_faq;
         } catch {
             this.loadFailed = true;
@@ -322,58 +318,16 @@ export class SupportUI {
         this.render();
     }
 
-    /** Opens a page in the Docs tab: from the list, a search hit, a link inside a page, or a citation. */
-    private async openDoc(slug: string): Promise<void> {
-        this.tab = 'docs';
-        this.page = { slug, title: '', html: '', url: null };
-        this.render();
-
-        try {
-            this.page = await this.api.doc(slug);
-        } catch {
-            this.page = null;
-            this.loadFailed = true;
-        }
-
-        this.render();
-        this.panel?.querySelector('.pane')?.scrollTo(0, 0);
-    }
-
     private renderDocs(): HTMLElement {
         const pane = el('div', 'pane');
 
-        if (this.page) {
-            const back = el('button', 'back', `← ${this.t('back')}`) as HTMLButtonElement;
-            back.type = 'button';
-            back.addEventListener('click', () => {
-                this.page = null;
-                this.render();
-            });
-            pane.append(back);
-
-            if (!this.page.html) {
-                pane.append(el('div', 'muted dots', this.t('loading')));
-                return pane;
-            }
-
-            const doc = el('div', 'doc');
-            doc.append(el('h1', '', this.page.title));
-            const body = el('div');
-            // Rendered on the server with raw HTML escaped and unsafe links dropped.
-            body.innerHTML = this.page.html;
-            doc.append(body);
-            this.wireLinks(doc);
-            pane.append(doc);
-
-            if (this.page.url && /^https?:\/\//.test(this.page.url)) {
-                const full = el('a', 'full', `${this.t('openFull')} ↗`) as HTMLAnchorElement;
-                full.href = this.page.url;
-                full.target = '_blank';
-                full.rel = 'noopener';
-                pane.append(full);
-            }
-
-            return pane;
+        // Pages are read on the public help pages, in their own window.
+        if (this.home && /^https?:\/\//.test(this.home)) {
+            const home = el('a', 'full', `${this.t('openHelpCentre')} ↗`) as HTMLAnchorElement;
+            home.href = this.home;
+            home.target = '_blank';
+            home.rel = 'noopener';
+            pane.append(home);
         }
 
         const search = document.createElement('input');
@@ -398,7 +352,7 @@ export class SupportUI {
             if (this.hits.length === 0) pane.append(el('div', 'muted', this.t('noResults')));
 
             for (const hit of this.hits) {
-                pane.append(this.item(hit.section ? `${hit.title} › ${hit.section}` : hit.title, hit.snippet, hit.slug));
+                pane.append(this.item(hit.section ? `${hit.title} › ${hit.section}` : hit.title, hit.snippet, hit.url));
             }
 
             return pane;
@@ -409,18 +363,22 @@ export class SupportUI {
             return pane;
         }
 
-        for (const doc of this.docs) pane.append(this.item(doc.title, doc.description, doc.slug));
+        for (const doc of this.docs) pane.append(this.item(doc.title, doc.description, doc.url));
 
         return pane;
     }
 
-    private item(title: string, detail: string, slug: string): HTMLElement {
-        const button = el('button', 'item') as HTMLButtonElement;
-        button.type = 'button';
-        button.append(el('b', '', title));
-        if (detail) button.append(el('span', '', detail));
-        button.addEventListener('click', () => void this.openDoc(slug));
-        return button;
+    /** A page, opened in a new window on the public help pages. */
+    private item(title: string, detail: string, url: string | null): HTMLElement {
+        const link = el('a', 'item') as HTMLAnchorElement;
+        if (url && /^https?:\/\//.test(url)) {
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+        }
+        link.append(el('b', '', title));
+        if (detail) link.append(el('span', '', detail));
+        return link;
     }
 
     private async runSearch(): Promise<void> {
@@ -478,17 +436,10 @@ export class SupportUI {
         return pane;
     }
 
-    /** Page-to-page links open in the reader; anything else in a new tab. */
+    /** Links in FAQ answers (to doc pages or elsewhere) open in a new window. */
     private wireLinks(container: HTMLElement): void {
         container.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
-            const href = link.getAttribute('href') ?? '';
-
-            if (href.startsWith(DOC_LINK)) {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    void this.openDoc(href.slice(DOC_LINK.length).split('#')[0]);
-                });
-            } else if (/^https?:\/\//.test(href)) {
+            if (/^https?:\/\//.test(link.getAttribute('href') ?? '')) {
                 link.target = '_blank';
                 link.rel = 'noopener';
             }
@@ -574,15 +525,6 @@ export class SupportUI {
                     link.href = citation.url;
                     link.target = '_blank';
                     link.rel = 'noopener';
-                    // The page opens in the Docs tab; a modified click still opens the full page.
-                    const slug = citation.slug;
-                    if (slug) {
-                        link.addEventListener('click', (event) => {
-                            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-                            event.preventDefault();
-                            void this.openDoc(slug);
-                        });
-                    }
                     sources.append(link);
                 } else {
                     sources.append(el('span', 'chip', label));

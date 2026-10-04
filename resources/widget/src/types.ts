@@ -34,12 +34,6 @@ export interface DocSummary {
     slug: string;
     title: string;
     description: string;
-}
-
-export interface DocPage {
-    slug: string;
-    title: string;
-    html: string;
     url: string | null;
 }
 
@@ -48,6 +42,7 @@ export interface SearchHit {
     title: string;
     section: string;
     snippet: string;
+    url: string | null;
 }
 
 export interface FaqEntry {

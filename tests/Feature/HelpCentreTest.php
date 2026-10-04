@@ -14,50 +14,47 @@ class HelpCentreTest extends TestCase
         $this->artisan('support:index');
     }
 
-    public function test_the_widget_lists_pages_without_the_faq(): void
+    public function test_the_widget_lists_pages_with_their_public_url_and_without_the_faq(): void
     {
-        $response = $this->getJson('/support/api/docs')->assertOk()->assertJsonPath('has_faq', true);
+        $response = $this->getJson('/support/api/docs')
+            ->assertOk()
+            ->assertJsonPath('has_faq', true)
+            ->assertJsonPath('home', 'http://localhost/help');
 
-        $slugs = array_column($response->json('docs'), 'slug');
-        $this->assertContains('integrations-slack', $slugs);
-        $this->assertNotContains('faq', $slugs);
+        $docs = collect($response->json('docs'))->keyBy('slug');
+        $this->assertSame('http://localhost/help/integrations-slack', $docs['integrations-slack']['url']);
+        $this->assertArrayNotHasKey('faq', $docs->all());
     }
 
-    public function test_a_page_is_rendered_with_links_kept_in_the_reader(): void
+    public function test_pages_are_not_served_to_the_widget_any_more(): void
     {
-        $this->getJson('/support/api/docs/faq')
-            ->assertOk()
-            ->assertJsonPath('doc.title', 'Frequently asked questions')
-            ->assertJsonPath('doc.url', 'http://localhost/help/faq')
-            ->assertJson(fn ($json) => $json->where('doc.html', fn ($html) => str_contains($html, 'href="#support-doc=integrations-slack"')
-                && ! str_contains($html, '<h1>'))->etc());
-
-        $this->getJson('/support/api/docs/nope')->assertNotFound();
+        $this->getJson('/support/api/docs/faq')->assertNotFound();
     }
 
     public function test_raw_html_in_the_docs_is_escaped(): void
     {
         \FifteenPeas\Support\Models\Document::where('slug', 'team')->update(['content' => "# Team\n\n<script>alert(1)</script>\n\nA [link](javascript:alert(1)) here."]);
 
-        $html = $this->getJson('/support/api/docs/team')->json('doc.html');
+        $html = $this->get('/help/team')->assertOk()->getContent();
 
-        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
         $this->assertStringNotContainsString('href="javascript:', $html);
     }
 
-    public function test_faq_entries_are_the_answered_questions(): void
+    public function test_faq_entries_are_the_answered_questions_with_links_to_public_pages(): void
     {
         $faq = $this->getJson('/support/api/faq')->assertOk()->json('faq');
 
         $this->assertSame(['Can I connect Slack?', 'Is there an API?'], array_column($faq, 'question'));
-        $this->assertStringContainsString('href="#support-doc=integrations-slack"', $faq[0]['html']);
+        $this->assertStringContainsString('href="http://localhost/help/integrations-slack"', $faq[0]['html']);
     }
 
     public function test_search_returns_sections(): void
     {
         $this->getJson('/support/api/docs/search?q=slack')
             ->assertOk()
-            ->assertJsonPath('results.0.slug', 'integrations-slack');
+            ->assertJsonPath('results.0.slug', 'integrations-slack')
+            ->assertJsonPath('results.0.url', 'http://localhost/help/integrations-slack');
     }
 
     public function test_the_public_help_centre_renders_pages_with_structured_data(): void
@@ -80,6 +77,16 @@ class HelpCentreTest extends TestCase
         // The markdown copy still answers next to the page.
         $this->get('/help/integrations-slack.md')->assertOk();
         $this->get('/help/nope')->assertNotFound();
+    }
+
+    public function test_the_help_centre_has_its_own_search(): void
+    {
+        $this->get('/help?q=slack')
+            ->assertOk()
+            ->assertSee('for “slack”', false)
+            ->assertSee('<a class="hit" href="http://localhost/help/integrations-slack">', false);
+
+        $this->get('/help?q=kubernetes')->assertOk()->assertSee('Nothing matches');
     }
 
     public function test_the_sitemap_lists_every_help_page(): void

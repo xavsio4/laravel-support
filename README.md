@@ -104,18 +104,18 @@ FreeScout sends every mailbox's events to every webhook, so several apps can sha
 The widget has three tabs:
 
 - **Ask** is the assistant.
-- **Docs** has a search box and the list of pages. Pages open in the panel, links between pages stay there, and **Open full page** goes to the public page. Citation chips in Ask open their page here too.
-- **FAQ** lists collapsible questions, then "Didn't find it? Ask the assistant".
+- **Docs** has a search box, the list of pages, and **Open the help centre**. Pages, search hits and citation chips all open the public help pages in a new window, so the docs are read on their own page, not squeezed into the panel.
+- **FAQ** lists collapsible questions, then "Didn't find it? Ask the assistant". Links in the answers also open in a new window.
 
 The panel reopens on whichever tab was used last.
 
 The FAQ is an ordinary page, `docs/support/faq.md` (`SUPPORT_FAQ_SLUG` changes the slug): each `##` heading is a question, and the text under it is the answer. Questions with no answer yet are skipped. Since it is indexed like every other page, the assistant, `llms.txt` and the MCP server answer from it too. Without a FAQ page, the FAQ tab is hidden.
 
-Pages are rendered to HTML on the server with raw HTML escaped and unsafe links dropped, so the widget carries no markdown renderer. Links between pages are written as `sites.md`, which also works on GitHub; the panel and the public pages each resolve them in their own way.
+Markdown is rendered to HTML on the server with raw HTML escaped and unsafe links dropped, so the widget carries no markdown renderer. Links between pages are written as `sites.md`, which also works on GitHub, and resolve to the public pages.
 
 ### Public help pages
 
-`/help` is an index of every page, and `/help/{slug}` shows one page. They are plain, responsive pages with a canonical URL and structured data: `TechArticle` on each page, and `FAQPage` on the FAQ, for search engines and AI search. `vendor:publish --tag=support-views` lets you restyle them. To add them to the app's sitemap:
+`/help` is the help centre's home page, with a search box and every page; `/help/{slug}` shows one page. They are plain, responsive pages with a canonical URL and structured data: `TechArticle` on each page, and `FAQPage` on the FAQ, for search engines and AI search. `vendor:publish --tag=support-views` lets you restyle them. To add them to the app's sitemap:
 
 ```php
 foreach (\FifteenPeas\Support\Sitemap::urls() as $url) {

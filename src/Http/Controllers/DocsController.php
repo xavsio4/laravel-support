@@ -11,35 +11,30 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 /**
- * The widget's Docs and FAQ tabs. Public, like the docs themselves; pages are
- * rendered here so the widget does not carry a markdown renderer.
+ * The widget's Docs and FAQ tabs. Public, like the docs themselves. Pages are
+ * read on the public help pages, in their own window; the widget only lists
+ * and searches them.
  */
 class DocsController extends Controller
 {
-    /** Links between pages open in the widget's reader, not the browser. */
-    private const READER_LINK = '#support-doc=';
-
     public function index(): JsonResponse
     {
         $docs = Document::query()
             ->where('slug', '!=', config('support.faq_slug'))
             ->orderBy('title')
             ->get()
-            ->map(fn (Document $d) => ['slug' => $d->slug, 'title' => $d->title, 'description' => $d->summary()]);
+            ->map(fn (Document $d) => [
+                'slug' => $d->slug,
+                'title' => $d->title,
+                'description' => $d->summary(),
+                'url' => $d->publicUrl(),
+            ]);
 
-        return $this->json(['docs' => $docs, 'has_faq' => app(Faq::class)->document() !== null]);
-    }
-
-    public function show(string $slug, DocRenderer $renderer): JsonResponse
-    {
-        $document = Document::where('slug', $slug)->firstOrFail();
-
-        return $this->json(['doc' => [
-            'slug' => $document->slug,
-            'title' => $document->title,
-            'html' => $renderer->html($document, fn ($s) => self::READER_LINK.$s),
-            'url' => $document->publicUrl(),
-        ]]);
+        return $this->json([
+            'docs' => $docs,
+            'home' => config('support.public.enabled') ? route('support.public.home') : null,
+            'has_faq' => app(Faq::class)->document() !== null,
+        ]);
     }
 
     public function search(Request $request, DocsSearch $search): JsonResponse
@@ -51,6 +46,7 @@ class DocsController extends Controller
             'title' => $h['title'],
             'section' => $h['section'],
             'snippet' => $h['snippet'],
+            'url' => $h['url'],
         ]);
 
         return $this->json(['results' => $results]);
@@ -58,9 +54,11 @@ class DocsController extends Controller
 
     public function faq(Faq $faq, DocRenderer $renderer): JsonResponse
     {
+        $toPage = fn (string $slug) => Document::where('slug', $slug)->first()?->publicUrl() ?? '#';
+
         $entries = array_map(fn (array $e) => [
             'question' => $e['question'],
-            'html' => $renderer->markdown($e['answer'], fn ($s) => self::READER_LINK.$s),
+            'html' => $renderer->markdown($e['answer'], $toPage),
         ], $faq->entries());
 
         return $this->json(['faq' => $entries]);

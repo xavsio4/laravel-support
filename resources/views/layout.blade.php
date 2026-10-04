@@ -39,6 +39,15 @@
         .cards a:hover{border-color:var(--fg)}
         .cards b{display:block;margin-bottom:4px}
         .cards span{color:var(--muted);font-size:14px}
+        .find{display:flex;gap:8px;margin:0 0 28px}
+        .find input{flex:1;min-width:0;font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+        .find input:focus{outline:2px solid var(--accent);outline-offset:1px}
+        .find button{font:600 15px system-ui,sans-serif;padding:0 18px;border:0;border-radius:10px;background:var(--accent);color:var(--bg);cursor:pointer}
+        .results{font-size:1rem;margin:0 0 12px;color:var(--muted)}
+        .hit{display:block;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:0 0 10px;text-decoration:none}
+        .hit:hover{border-color:var(--fg)}
+        .hit b{display:block;margin-bottom:4px}
+        .hit span{color:var(--muted);font-size:14px}
         .meta{color:var(--muted);font-size:13px;margin-top:40px;border-top:1px solid var(--line);padding-top:12px}
     </style>
 </head>

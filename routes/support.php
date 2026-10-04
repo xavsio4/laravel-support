@@ -30,7 +30,6 @@ Route::prefix(config('support.routes.prefix'))
         Route::middleware('throttle:support-public')->group(function () {
             Route::get('docs', [DocsController::class, 'index'])->name('docs.index');
             Route::get('docs/search', [DocsController::class, 'search'])->name('docs.search');
-            Route::get('docs/{slug}', [DocsController::class, 'show'])->where('slug', '[A-Za-z0-9_-]+')->name('docs.show');
             Route::get('faq', [DocsController::class, 'faq'])->name('faq');
         });
 

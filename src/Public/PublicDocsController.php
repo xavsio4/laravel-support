@@ -3,6 +3,7 @@
 namespace FifteenPeas\Support\Public;
 
 use FifteenPeas\Support\Docs\DocRenderer;
+use FifteenPeas\Support\Docs\DocsSearch;
 use FifteenPeas\Support\Docs\Faq;
 use FifteenPeas\Support\Models\Document;
 use Illuminate\Http\Response;
@@ -15,11 +16,14 @@ use Illuminate\Routing\Controller;
 class PublicDocsController extends Controller
 {
     /** The help centre's front page: every page, the FAQ first. */
-    public function home(): \Illuminate\Contracts\View\View
+    public function home(\Illuminate\Http\Request $request, DocsSearch $search): \Illuminate\Contracts\View\View
     {
         $faqSlug = config('support.faq_slug');
+        $query = trim(mb_substr((string) $request->query('q', ''), 0, 200));
 
         return view('support::index', [
+            'query' => $query,
+            'results' => $query !== '' ? $search->search($query, 10) : null,
             'app' => config('support.app_name'),
             'summary' => config('support.public.summary'),
             'faq' => Document::where('slug', $faqSlug)->first(),
