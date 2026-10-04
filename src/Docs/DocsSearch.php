@@ -76,6 +76,11 @@ class DocsSearch
 
         usort($hits, fn ($a, $b) => $b['score'] <=> $a['score'] ?: strcmp($a['slug'], $b['slug']));
 
+        // A section far below the best match only mentions a word in passing;
+        // listing it buries the answer rather than adding one.
+        $floor = ($hits[0]['score'] ?? 0) * 0.4;
+        $hits = array_values(array_filter($hits, fn ($h) => $h['score'] >= $floor));
+
         return array_slice($hits, 0, max(1, $limit));
     }
 
@@ -136,10 +141,22 @@ class DocsSearch
         return $sections;
     }
 
+    /** Markdown down to readable text: snippets are shown as plain text. */
+    private function plain(string $markdown): string
+    {
+        $text = preg_replace('/^```.*$/m', '', $markdown);                   // fences
+        $text = preg_replace('/^\s*(?:[-*+]|\d+[.)])\s+/m', '', $text);      // list markers
+        $text = preg_replace('/^\s*(?:#+|>)\s*/m', '', $text);               // headings, quotes
+        $text = preg_replace('/!?\[([^\]]*)\]\([^)]*\)/', '$1', $text);      // links, images
+        $text = preg_replace('/(\*\*|__|`)/', '', $text);                    // emphasis, code
+
+        return $text;
+    }
+
     /** @param  array<int, string>  $terms */
     private function snippet(string $body, array $terms): string
     {
-        $flat = preg_replace('/\s+/', ' ', $body);
+        $flat = preg_replace('/\s+/', ' ', $this->plain($body));
         $lower = mb_strtolower($flat);
         $at = 0;
 

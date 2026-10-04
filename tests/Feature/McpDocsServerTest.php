@@ -32,6 +32,16 @@ class McpDocsServerTest extends TestCase
         $response->assertSee(['## Troubleshooting › A report is not in the inbox', 'Unconfirmed reports stay hidden']);
     }
 
+    public function test_snippets_are_plain_text_and_passing_mentions_are_dropped(): void
+    {
+        $response = DocsServer::tool(SearchDocs::class, ['query' => 'screenshot firefox']);
+
+        $response->assertSee('In Firefox the screenshot is drawn from the page: no prompt visible part only')
+            ->assertDontSee('**')
+            // Getting started mentions neither word in a heading: below the floor.
+            ->assertDontSee('## Getting started');
+    }
+
     public function test_word_forms_match(): void
     {
         DocsServer::tool(SearchDocs::class, ['query' => 'invite', 'limit' => 1])->assertSee('## Team › Members');

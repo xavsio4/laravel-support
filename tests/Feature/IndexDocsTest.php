@@ -12,10 +12,10 @@ class IndexDocsTest extends TestCase
         Document::create(['slug' => 'gone', 'title' => 'Gone', 'content' => 'x', 'checksum' => 'x', 'tokens' => 1]);
 
         $this->artisan('support:index')
-            ->expectsOutputToContain('5 documents (5 new, 0 updated, 1 removed)')
+            ->expectsOutputToContain('6 documents (6 new, 0 updated, 1 removed)')
             ->assertSuccessful();
 
-        $this->assertSame(['faq', 'getting-started', 'integrations-slack', 'team', 'troubleshooting'], Document::orderBy('slug')->pluck('slug')->all());
+        $this->assertSame(['faq', 'getting-started', 'integrations-slack', 'screens', 'team', 'troubleshooting'], Document::orderBy('slug')->pluck('slug')->all());
 
         $this->artisan('support:index')
             ->expectsOutputToContain('(0 new, 0 updated, 0 removed)')

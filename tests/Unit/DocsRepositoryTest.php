@@ -11,7 +11,7 @@ class DocsRepositoryTest extends TestCase
     {
         $docs = (new DocsRepository(__DIR__.'/../fixtures/docs'))->all();
 
-        $this->assertSame(['faq', 'getting-started', 'integrations-slack', 'team', 'troubleshooting'], array_map(fn ($d) => $d->slug, $docs));
+        $this->assertSame(['faq', 'getting-started', 'integrations-slack', 'screens', 'team', 'troubleshooting'], array_map(fn ($d) => $d->slug, $docs));
 
         [, $start, $slack] = $docs;
 
